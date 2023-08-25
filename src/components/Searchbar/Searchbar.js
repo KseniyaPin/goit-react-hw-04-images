@@ -1,54 +1,49 @@
-import React, { Component } from 'react';
+import { useState } from 'react';
 import css from './Searchbar.module.css';
 import { CiSearch } from 'react-icons/ci';
+// import { nanoid } from 'nanoid';
 
-export class Searchbar extends Component {
+export default function Searchbar({ onSubmit }) {
   // зберігаємо дані, поки набираємо їх в інпуті
-  state = {
-    name: '',
+  const [name, setName] = useState('');
+
+  const handleNameChange = evt => {
+    setName(evt.target.value.toLowerCase());
   };
 
-  handleNameChange = evt => {
-    this.setState({ name: evt.currentTarget.value.toLowerCase() });
-  };
-
-  handleSubmit = evt => {
+  const handleSubmit = evt => {
     evt.preventDefault();
     //    trim() - прибирає пробіли ліворуч/праворуч
-    if (this.state.name.trim() === '') {
+    if (name.trim() === '') {
       return alert('Введіть правильну назву');
     }
-
-    this.props.onSubmit(this.state.name);
-    this.setState({ name: '' });
+    onSubmit(name);
+    setName('');
   };
+  return (
+    <header className={css.Searchbar}>
+      <form className={css.SearchForm} onSubmit={handleSubmit}>
+        <button type="submit" className={css.SearchFormButton}>
+          <span className={css.SearchFormButtonLabel}>
+            <CiSearch
+              style={{
+                fill: '#222222',
+                stroke: '#222222',
+                width: 25,
+                height: 25,
+              }}
+            />
+          </span>
+        </button>
 
-  render() {
-    return (
-      <header className={css.Searchbar}>
-        <form className={css.SearchForm} onSubmit={this.handleSubmit}>
-          <button type="submit" className={css.SearchFormButton}>
-            <span className={css.SearchFormButtonLabel}>
-              <CiSearch
-                style={{
-                  fill: '#222222',
-                  stroke: '#222222',
-                  width: 25,
-                  height: 25,
-                }}
-              />
-            </span>
-          </button>
-
-          <input
-            className={css.SearchFormInput}
-            type="text"
-            placeholder="Search images and photos"
-            value={this.state.name}
-            onChange={this.handleNameChange}
-          />
-        </form>
-      </header>
-    );
-  }
+        <input
+          className={css.SearchFormInput}
+          type="text"
+          placeholder="Search images and photos"
+          value={name}
+          onChange={handleNameChange}
+        />
+      </form>
+    </header>
+  );
 }

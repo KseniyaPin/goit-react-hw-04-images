@@ -1,27 +1,23 @@
-import React, { Component } from 'react';
-import { Searchbar } from './Searchbar/Searchbar';
-import { ImageGallery } from './ImageGallery/ImageGallery';
+import React, { useState } from 'react';
+import Searchbar from './Searchbar/Searchbar';
+import ImageGallery from './ImageGallery/ImageGallery';
 import style from './styles.module.css';
 
-class App extends Component {
+export default function App() {
+  const [name, setName] = useState('');
 
-  state = {
-    name: '',
+  // function handleFormSubmit(name) {
+  //   return setName(name);
+  // }
+
+  const handleFormSubmit = name => {
+    setName(name);
   };
 
-  handleFormSubmit = name => {
-    this.setState({ name });
-  };
-
-  render() {
-
-    return (
-      <div className={style.App}>
-        <Searchbar onSubmit={this.handleFormSubmit} />
-        <ImageGallery name={this.state.name} />
-      </div>
-    );
-  }
+  return (
+    <div className={style.App}>
+      <Searchbar onSubmit={handleFormSubmit} />
+      <ImageGallery name={name} />
+    </div>
+  );
 }
-
-export default App;

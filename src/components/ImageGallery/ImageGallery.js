@@ -1,4 +1,5 @@
-import React, { Component } from 'react';
+import PropTypes from 'prop-types';
+import React, { useState, useEffect } from 'react';
 import ImageGalleryItem from '../ImageGalleryItem/ImageGalleryItem';
 import { Loader } from '../Loader/Loader';
 import Button from '../Button/Button';
@@ -7,53 +8,71 @@ import css from './ImageGallery.module.css';
 const BASE_URL = 'https://pixabay.com/api/';
 const API_KEY = '37518101-4c8b383dea2a151ad4bc810e7';
 
-export class ImageGallery extends Component {
-  state = {
-    page: 1,
-    total: 0,
-    img: [],
-    error: null,
-    status: 'idle', // 'idle' - запита ще немає
+export default function ImageGallery({ name }) {
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [img, setImg] = useState([]);
+  const [error, setError] = useState(null);
+  const [status, setStatus] = useState('idle'); // 'idle' - запита ще немає
+
+  useEffect(() => {
+    if (!name) {
+      return;
+    }
+
+    const fetchImageFunction = async () => {
+      setPage(1);
+      setTotal(0);
+      setImg([]);
+      setStatus('pending');
+
+      fetchImage({
+        page: 1,
+      })
+        .then(({ hits, total }) => {
+          setImg([...hits]);
+          setTotal(total);
+          setStatus('resolved');
+        })
+        .catch(errorMessage => setStatus('rejected'));
+    };
+
+    fetchImageFunction();
+  }, [name]);
+
+  useEffect(() => {
+    const fetchImageFunction = async () => {
+      fetchImage({
+        page: page,
+      })
+        .then(({ hits }) => {
+          setImg(prevImg => [...prevImg, ...hits]);
+        })
+        .catch(errorMessage => setStatus('rejected'));
+    };
+    fetchImageFunction();
+  }, [page]);
+
+  const onClickButtonMore = () => {
+    setPage(prevPage => prevPage + 1);
+    // fetchImage();
   };
 
-  async componentDidUpdate(prevProps, prevState) {
-    if (prevProps.name !== this.props.name) {
-      try {
-        this.setState({ page: 1, total: 0, img: [], status: 'pending' });
-
-        const { total, hits } = await this.fetchImage();
-
-        this.setState({ img: hits, total, status: 'resolved' });
-      } catch {
-        this.setState({ status: 'rejected' });
-      }
-    }
-
-    if (prevState.page !== this.state.page) {
-      const { hits } = await this.fetchImage();
-      if (prevProps.name !== this.props.name) {
-        this.setState({ img: hits });
-        return;
-      }
-      this.setState({ img: [...prevState.img, ...hits] });
-    }
-  }
-
-  fetchImage = async () => {
-    const search = {
-      q: this.props.name,
+  const fetchImage = async ({ page }) => {
+    const searchQuery = {
+      q: name,
       per_page: 12,
       image_type: 'photo',
-      page: this.state.page,
+      page: page,
       orientation: 'horizontal',
     };
 
     const response = await fetch(
-      `${BASE_URL}?q=${search.q}&page=${search.page}&key=${API_KEY}&image_type=${search.image_type}&orientation=${search.orientation}&per_page=${search.per_page}`
+      `${BASE_URL}?q=${searchQuery.q}&page=${searchQuery.page}&key=${API_KEY}&image_type=${searchQuery.image_type}&orientation=${searchQuery.orientation}&per_page=${searchQuery.per_page}`
     );
 
     if (!response.ok) {
-      throw new Error(`No search pictures ${this.props.name}`);
+      throw new Error(`No search pictures ${name}`);
     }
 
     const img = await response.json();
@@ -61,48 +80,41 @@ export class ImageGallery extends Component {
     return img;
   };
 
-  onClickButtonMore = () => {
-    this.setState(prevState => ({
-      page: prevState.page + 1,
-    }));
-    this.fetchImage();
-  };
+  // 'idle' - запиту ще немає
+  if (status === 'idle') {
+    return;
+  }
 
-  render() {
-    const { img, total, status } = this.state;
+  // 'pending' - пішов запит
+  if (status === 'pending') {
+    return <Loader />;
+  }
 
-    // 'idle' - запиту ще немає
-    if (status === 'idle') {
-      return;
-    }
+  // 'rejected' - запит із помилкою
+  if (status === 'rejected') {
+    return <p>{setError(error)}</p>;
+  }
 
-    // 'pending' - пішов запит
-    if (status === 'pending') {
-      return <Loader />;
-    }
+  // 'resolved' - успішний запит
+  if (status === 'resolved') {
+    return (
+      <>
+        <ul className={css.ImageGallery}>
+          {img.map(elem => (
+            <li key={elem.id} className={css.ImageGalleryItem}>
+              <ImageGalleryItem nameSearch={elem} />
+            </li>
+          ))}
+        </ul>
 
-    // 'rejected' - запит із помилкою
-    if (status === 'rejected') {
-      return <p>{this.state.error.message}</p>;
-    }
-
-    // 'resolved' - успішний запит
-    if (status === 'resolved') {
-      return (
-        <>
-          <ul className={css.ImageGallery}>
-            {img.map(elem => (
-              <li key={elem.id} className={css.ImageGalleryItem}>
-                <ImageGalleryItem name={elem} />
-              </li>
-            ))}
-          </ul>
-
-          {img.length < 12 || total === img.length ? null : (
-            <Button onclick={this.onClickButtonMore} />
-          )}
-        </>
-      );
-    }
+        {img.length < 12 || total === img.length ? null : (
+          <Button onclick={onClickButtonMore} />
+        )}
+      </>
+    );
   }
 }
+
+ImageGallery.propTypes = {
+  name: PropTypes.string.isRequired,
+};
